@@ -1,0 +1,92 @@
+---
+- hosts: '{{ host }}'
+  remote_user: admin
+  become: yes
+  become_user: qjdadmin
+  vars:
+        war_file_dir: '{{ war_file_dir }}'
+        md5_war: '{{ md5_war }}'
+        product_name: '{{ product_name }}'
+        app_name: '{{ app_name }}'
+        war_name: '{{ war_name }}'
+  tasks:
+        - name: sync war file
+          copy: src={{ war_file_dir }} dest=/tmp
+
+        - name: new war md5sum
+          shell: "md5sum /tmp/{{ app_name }} |awk '{print $1}'"
+          register: resultt
+
+        - name: remote war md5
+          debug: msg={{ resultt.stdout }}
+
+        - name: local war md5
+          debug: msg={{ md5_war }}
+
+        - name: Stop building if you don't have the same md5
+          fail: msg="md5 is difference stop build"
+          when: resultt.stdout != "{{ md5_war }}"
+
+        - name: "stop app service"
+          shell: '/srv/qjdchina.com/tomcatserver/{{ product_name }}/bin/catalina.sh stop'
+
+        - name: "sleep 5"
+          shell: sleep 5
+
+        - name: "count app Process"
+          shell: 'ps -ef | grep {{ product_name }}| grep java | grep -v grep | wc -l'
+          register: pscount
+
+        - name: print pscount
+          debug: msg={{ pscount.stdout }}
+
+        - name: judge process number
+          shell: "ps -ef | grep {{ product_name }} | grep java | grep -v grep | awk '{print $2}'"
+          register: psnum
+
+        - name: print process number
+          debug: msg={{ psnum.stdout }}
+
+        - name: "kill app process"
+          shell: kill -9 "{{ psnum.stdout }}"
+          when: pscount.stdout != "0"
+
+        - name: tar logs
+          shell: 'tar -zcf /srv/qjdchina.com/tomcatserver/{{ product_name }}/logs.tar.gz -C /srv/qjdchina.com/tomcatserver/{{ product_name }}/ logs'
+
+        - name: delete logs
+          shell: 'rm -rf /srv/qjdchina.com/tomcatserver/{{ product_name }}/logs/*'
+
+        - name: "backup old  app"
+          shell: 'cp -a /srv/qjdchina.com/tomcatserver/{{ product_name }}/ /srv/qjdchina.com/backup/{{ product_name }}_`date +"%Y%m%d_%H%M%S"`'
+
+        - name: "delete old  work file"
+          shell: "rm -fr /srv/qjdchina.com/tomcatserver/{{ product_name }}/work/*"
+
+        - name: "delete old  webapps file"
+          shell: "rm -fr /srv/qjdchina.com/tomcatserver/{{ product_name }}/webapps/*"
+
+        - name: "delete  logs tar"
+          shell: "rm -fr /srv/qjdchina.com/tomcatserver/{{ product_name }}/logs.tar.gz"
+
+        - name: "copy new  war to webapps directior"
+          shell: 'cp /tmp/{{ app_name }} /srv/qjdchina.com/tomcatserver/{{ product_name }}/webapps/{{ war_name }}.war'
+          register: result
+
+        - name: message
+          debug: msg={{ result }}
+
+        - name: "start app service"
+          shell: 'nohup /srv/qjdchina.com/tomcatserver/{{ product_name }}/bin/catalina.sh start'
+          environment:
+            JAVA_HOME: /usr/java/jdk1.7.0_80
+          register: result4
+
+        - name: "start  app message"
+          debug: msg="{{ result4.stdout }}"
+
+        - name: "start app error"
+          debug: msg="{{ result4.stderr }}"
+
+        - name: delete tmp war file
+          shell: 'rm -fr /tmp/{{ app_name }}'

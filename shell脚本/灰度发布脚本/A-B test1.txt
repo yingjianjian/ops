@@ -1,0 +1,26 @@
+NewServiceName="${ServiceName}-new"
+IsNullByte=`grep [^o]$NewServiceName $UpstreamFile | wc -l`
+IsNullBytes=`grep [^o]$NewServiceName $ConfFile|wc -l`
+if [ $IsNullByte = 0 -a $IsNullBytes = 0 ];then
+	sudo sed  -i "/[^o]${ServiceName}/{n;s/server.*/&\n\}\nupstream ${NewServiceName} \{/}" $UpstreamFile
+	co=`grep -n 'location' $ConfFile |head -n1 | awk -F ':' '{ print $1 }'`
+	cos=`expr $co - 1`
+	sudo sed -i  "${cos}i\    set \$$${GroupName} ${ServiceName};\n    if (\$remote_addr ~ "47.97.10.153") {\n      set \$$${GroupName} ${NewServiceName};\n    }" $ConfFile
+	sudo sed -i "s/\(proxy_pass http:\/\/\)${ServiceName}/\1\$$${GroupName}/g" $ConfFile
+grep -r $NewServiceName $UpstreamFile -A2
+elif [ $IsNullByte != 0 -a $IsNullBytes = 0 ];then
+	co=`grep -n 'location' $ConfFile |head -n1 | awk -F ':' '{ print $1 }'`
+	cos=`expr $co - 1`
+	sudo sed -i  "${cos}i\    set \$$${GroupName}  ${ServiceName};\n    if (\$remote_addr ~ "47.97.10.153") {\n      set \$$${GroupName} ${NewServiceName};\n    }" $ConfFile
+	sudo sed -i "s/\(proxy_pass http:\/\/\)${ServiceName}/\1\$$${GroupName}/g" $ConfFile
+else
+	echo 'no match'
+        exit 1
+fi
+sudo /sbin/nginx -t
+if [ $? = 0 ];then
+echo reload
+else
+echo 'configure is error'
+exit 1
+fi

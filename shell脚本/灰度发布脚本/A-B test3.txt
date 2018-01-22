@@ -1,0 +1,20 @@
+NewServiceName="${ServiceName}-new"
+IsNullByte=`grep $NewServiceName $UpstreamFile | wc -l`
+IsNullBytes=`grep [^o]$group $ConfFile | wc -l`
+if [ $IsNullByte = 1 -a $IsNullBytes != 0  ];then
+        sudo sed -i "/set \$$${GroupName}/{n;d}" $ConfFile
+        sudo sed -i "/set \$$${GroupName}/d" $ConfFile
+        sudo sed -i "s/\(proxy_pass http:\/\/\)\$$${GroupName}/\1${ServiceName}/g" $ConfFile
+        sudo sed -i -e "/${ServiceName}[^-new]/{n;n;d}" -e "/${NewServiceName}/d" $UpstreamFile
+elif [ $IsNullByte != 1 -a $IsNullBytes != 0  ];then
+        sudo sed -i "/set \$$${GroupName}/{n;d}" $ConfFile
+        sudo sed -i "/set \$$${GroupName}/d" $ConfFile
+        sudo sed -i "s/\(proxy_pass http:\/\/\)\$$${GroupName}/\1${ServiceName}/g" $ConfFile
+fi
+sudo /sbin/nginx -t
+if [ $? = 0 ];then
+echo reload
+else
+echo 'configure is error'
+exit 1
+fi

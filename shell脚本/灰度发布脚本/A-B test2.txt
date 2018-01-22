@@ -1,0 +1,15 @@
+NewServiceName="${ServiceName}-new"
+IsNullByte=`grep $ServiceName $UpstreamFile | wc -l`
+IsNullBytes=`grep $ServiceName $ConfFile|wc -l`
+if [ $IsNullByte != 0 -a $IsNullBytes != 0 ];then
+	sudo sed -i "s/set \$$${GroupName} .*-new/middle/" $ConfFile
+	sudo sed -i "s/\(set \$$${GroupName}\).*/\1 ${NewServiceName};/" $ConfFile
+	sudo sed -i "s/middle/set \$$${GroupName} ${ServiceName}/" $ConfFile
+fi
+sudo /sbin/nginx -t
+if [ $? = 0 ];then
+sudo systemctl reload nginx.service
+else
+echo 'configure is error'
+exit 1
+fi

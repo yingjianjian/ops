@@ -1,0 +1,16 @@
+#!/bin/bash
+HeapDumpPath=/srv/logs/
+ProcessNum=`ps -ef | grep java | grep cmcs | awk '{print $2}'`
+for i in $ProcessNum;do
+        HeapDumpFile=${HeapDumpPath}java_pid${i}.hprof
+        echo $i
+        ServiceName=`ps -ef | grep $i  | grep -v grep | awk '{print $21}'|awk -F '/' '{print $5}'`
+        if [ -f "$HeapDumpFile" -a ! -f "/tmp/$i" ];then
+                cd /srv/logs/ && tar -zcf java_pid${i}.hprof.tar.gz java_pid${i}.hprof
+                echo "cmcs2 $ServiceName 内存溢出" | /usr/bin/mutt -s "$ServiceName 内存溢出" yingjianjian@qjdchina.com caiwei@qjdchina.com wangxuanye@qjdchina.com luwenjun@qjdchina.com zhuyonglin@qjdchina.com  -a java_pid${i}.hprof.tar.gz
+                rm -rf java_pid${i}.hprof.tar.gz
+                touch /tmp/$i
+        else
+                echo "正常"
+        fi
+done
