@@ -7,7 +7,7 @@ def  smtprc(receivers,name,username,passwd):
     # 第三方 SMTP 服务
     mail_host = "smtp.exmail.qq.com"  # 设置服务器
     mail_user = "devops@isyscore.com"  # 用户名
-    mail_pass = "6KQKxrtL@E8FpkJ"  # 口令
+    mail_pass = "******"  # 口令
 
     sender = 'devops@isyscore.com'
     message = MIMEText('%s 你好 你的LDAP的账号为%s,初始化密码为:%s\n后续修改密码请登录：http://192.168.9.9:8087'%(name,username,passwd), 'plain', 'utf-8')
